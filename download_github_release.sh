@@ -18,6 +18,7 @@ download_github_release() {
     local query=""
 
     # Build query string from remaining arguments for filtering the assets
+    # Start the query with a term that ensures it's never empty and avoids leading +
     for keyword in "${keywords[@]}"; do
         # Append each keyword surrounded by wildcards to the query
         query="${query}(?=.*${keyword})"
@@ -27,21 +28,24 @@ download_github_release() {
     local api_url="https://api.github.com/repos/$repo/releases/latest"
     local release_info=$(curl -s "$api_url")
 
-    # Extract all matching asset URLs based on the regex query
-    local asset_urls=($(echo "$release_info" | jq -r --arg query "$query" '.assets[] | select(.name | test($query; "i")) | .browser_download_url'))
+    # Find the asset download URLs from the release data based on the regex query
+    local matching_urls=($(echo "$release_info" | jq -r --arg query "$query" '.assets[] | select(.name | test($query; "i")) | .browser_download_url'))
 
-    # Check the number of asset URLs retrieved
-    if [ ${#asset_nb} -eq 0 ]; then
-        echo "Error: No asset found matching the criteria or bad regex."
+    print -c cyan $matching_urls
+
+    if [ ${#matchingaUrls[@]} -eq 0 ]; then
+        echo "Error: No asset found matching the criteria."
         return 1
-    elif [ ${#asset_urls[@]} -gt 1 ]; then
-        echo "Error: Multiple assets found matching the criteria. Please specify more unique filter keywords."
-        echo "Matching URLs:"
-        printf "%s\n" "${asset_urls[@]}"
+    elif [ ${#matching_urls[@]} -gt 1 ]; then
+        echo "Multiple assets found matching the criteria. Please specify additional keywords to narrow it down:"
+        for url in "${matching_urls[@]}"; do
+            echo "  - $url"
+        done
         return 1
     fi
 
-    local asset_url=${asset_urls[0]}
+    # Only one URL should be here if the script reaches this point
+    local asset_url=${matching_urls[0]}
 
     # Validate the asset URL
     if [[ ! "$asset_url" =~ ^https?:// ]]; then
@@ -70,6 +74,7 @@ download_github_release() {
 
 # Example usage:
 # download_github_release "sharkdp/bat" "/tmp/bat" "x86_64" "linux" "musl"
+
 
 # If script is sourced, do nothing, only define function
 # If script is run directly, call print_color with all command line arguments
