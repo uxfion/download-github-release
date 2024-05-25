@@ -18,7 +18,6 @@ download_github_release() {
     local query=""
 
     # Build query string from remaining arguments for filtering the assets
-    # Start the query with a term that ensures it's never empty and avoids leading +
     for keyword in "${keywords[@]}"; do
         # Append each keyword surrounded by wildcards to the query
         query="${query}(?=.*${keyword})"
@@ -28,13 +27,21 @@ download_github_release() {
     local api_url="https://api.github.com/repos/$repo/releases/latest"
     local release_info=$(curl -s "$api_url")
 
-    # Find the asset download URL from the release data based on the regex query
-    local asset_url=$(echo "$release_info" | jq -r --arg query "$query" '.assets[] | select(.name | test($query; "i")) | .browser_download_url')
+    # Extract all matching asset URLs based on the regex query
+    local asset_urls=($(echo "$release_info" | jq -r --arg query "$query" '.assets[] | select(.name | test($query; "i")) | .browser_download_url'))
 
-    if [ -z "$asset_url" ]; then
+    # Check the number of asset URLs retrieved
+    if [ ${#asset_nb} -eq 0 ]; then
         echo "Error: No asset found matching the criteria or bad regex."
         return 1
+    elif [ ${#asset_urls[@]} -gt 1 ]; then
+        echo "Error: Multiple assets found matching the criteria. Please specify more unique filter keywords."
+        echo "Matching URLs:"
+        printf "%s\n" "${asset_urls[@]}"
+        return 1
     fi
+
+    local asset_url=${asset_urls[0]}
 
     # Validate the asset URL
     if [[ ! "$asset_url" =~ ^https?:// ]]; then
@@ -63,7 +70,6 @@ download_github_release() {
 
 # Example usage:
 # download_github_release "sharkdp/bat" "/tmp/bat" "x86_64" "linux" "musl"
-
 
 # If script is sourced, do nothing, only define function
 # If script is run directly, call print_color with all command line arguments
