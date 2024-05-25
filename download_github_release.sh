@@ -4,7 +4,7 @@
 download_github_release() {
     # Display help message if help flag is detected or not enough arguments are provided
     if [[ "$1" == "-h" || "$1" == "--help" || "$#" -lt 2 ]]; then
-        echo "Usage: $0 <repository> <destination directory> [filter keywords...]"
+        echo "Usage: $0 <repository> <destination directory> [options] [filter keywords...]"
         echo "Download the latest GitHub release asset matching specified filters."
         echo ""
         echo "Arguments:"
@@ -13,27 +13,45 @@ download_github_release() {
         echo "  [filter keywords...]         Optional regular expression(s) to filter asset names"
         echo ""
         echo "Options:"
-        echo "  -h, -- jhelp                   Display this help message and exit"
+        echo "  -e, --exclude <pattern>  Exclude assets matching <pattern>"
+        echo "  -h, -- help                   Display this help message and exit"
         echo ""
         echo "Examples:"
-        echo "  $0 sharkdp/bat /tmp/bat linux.*musl     Download assets that match 'linux.*musl' in their name from sharkdp/bat"
-        echo "  $0 sharkdp/bat /tmp/bat x86_64 linux   Download assets containing 'x86_64' and 'linux' in their name"
+        echo "  $0 sharkdp/bat /tmp/bat linux.*musl"
+        echo "  $0 sharkdp/bat /tmp/bat linux x86 musl"
+        echo "  $0 BurntSushi/ripgrep ./ linux x86"
+        echo "  $0 BurntSushi/ripgrep ./ linux x86 -e sha256  # Exclude assets with 'sha256' in the name"
         return 0
     fi
 
     local repo=$1
     local dest=$2
-    local keywords=("$@") # Capture all parameters in an array
+    shift 2
+    local excludes=()
+    local includes=()
 
-    # Remove the first two parameters as they are repo and dest
-    keywords=("${keywords[@]:2}")
+    while (( "$#" )); do
+        case "$1" in
+            -e|--exclude)
+                excludes+=("$2")  # Add to array of patterns to exclude
+                shift 2
+                ;;
+            *)
+                includes+=("$1")  # Add to array of patterns to include
+                shift
+                ;;
+        esac
+    done
 
+    # Construct the inclusion regex
     local query=""
-
-    # Build regex pattern from remaining arguments for filtering the assets
-    for keyword in "${keywords[@]}"; do
-        # Append each keyword surrounded by wildcards to the query
+    for keyword in "${includes[@]}"; do
         query="${query}(?=.*${keyword})"
+    done
+
+    # Add exclusion patterns
+    for exclude in "${excludes[@]}"; do
+        query="${query}(?!.*${exclude})"
     done
 
     # Use GitHub API to get the latest release data
@@ -81,9 +99,6 @@ download_github_release() {
         return 1
     fi
 }
-
-# Example usage:
-# download_github_release sharkdp/bat /tmp/bat x86_64 linux musl
 
 
 # If script is sourced, do nothing, only define function
