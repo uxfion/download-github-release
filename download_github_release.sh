@@ -32,7 +32,13 @@ download_github_release() {
     local asset_url=$(echo "$release_info" | jq -r --arg query "$query" '.assets[] | select(.name | test($query; "i")) | .browser_download_url')
 
     if [ -z "$asset_url" ]; then
-        echo "Error: No asset found matching the criteria."
+        echo "Error: No asset found matching the criteria or bad regex."
+        return 1
+    fi
+
+    # Validate the asset URL
+    if [[ ! "$asset_url" =~ ^https?:// ]]; then
+        echo "Error: Retrieved URL is invalid: $asset_url"
         return 1
     fi
 
