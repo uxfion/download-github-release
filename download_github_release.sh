@@ -2,10 +2,23 @@
 
 # Function to download the latest GitHub release based on given filters
 download_github_release() {
-    # Check if at least two arguments are provided
-    if [ "$#" -lt 2 ]; then
+    # Display help message if help flag is detected or not enough arguments are provided
+    if [[ "$1" == "-h" || "$1" == "--help" || "$#" -lt 2 ]]; then
         echo "Usage: $0 <repository> <destination directory> [filter keywords...]"
-        return 1
+        echo "Download the latest GitHub release asset matching specified filters."
+        echo ""
+        echo "Arguments:"
+        echo "  <repository>                 GitHub repository in the format 'owner/repo'"
+        echo "  <destination directory>      Local directory to save the downloaded file"
+        echo "  [filter keywords...]         Optional regular expression(s) to filter asset names"
+        echo ""
+        echo "Options:"
+        echo "  -h, -- jhelp                   Display this help message and exit"
+        echo ""
+        echo "Examples:"
+        echo "  $0 sharkdp/bat /tmp/bat linux.*musl     Download assets that match 'linux.*musl' in their name from sharkdp/bat"
+        echo "  $0 sharkdp/bat /tmp/bat x86_64 linux   Download assets containing 'x86_64' and 'linux' in their name"
+        return 0
     fi
 
     local repo=$1
@@ -70,7 +83,7 @@ download_github_release() {
 }
 
 # Example usage:
-# download_github_release "sharkdp/bat" "/tmp/bat" "x86_64" "linux" "musl"
+# download_github_release sharkdp/bat /tmp/bat x86_64 linux musl
 
 
 # If script is sourced, do nothing, only define function
