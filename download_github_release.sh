@@ -17,8 +17,7 @@ download_github_release() {
 
     local query=""
 
-    # Build query string from remaining arguments for filtering the assets
-    # Start the query with a term that ensures it's never empty and avoids leading +
+    # Build regex pattern from remaining arguments for filtering the assets
     for keyword in "${keywords[@]}"; do
         # Append each keyword surrounded by wildcards to the query
         query="${query}(?=.*${keyword})"
@@ -31,9 +30,7 @@ download_github_release() {
     # Find the asset download URLs from the release data based on the regex query
     local matching_urls=($(echo "$release_info" | jq -r --arg query "$query" '.assets[] | select(.name | test($query; "i")) | .browser_download_url'))
 
-    print -c cyan $matching_urls
-
-    if [ ${#matchingaUrls[@]} -eq 0 ]; then
+    if [ ${#matching_urls[@]} -eq 0 ]; then
         echo "Error: No asset found matching the criteria."
         return 1
     elif [ ${#matching_urls[@]} -gt 1 ]; then
