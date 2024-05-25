@@ -2,6 +2,12 @@
 
 # Function to download the latest GitHub release based on given filters
 download_github_release() {
+    # Check if at least two arguments are provided
+    if [ "$#" -lt 2 ]; then
+        echo "Usage: $0 <repository> <destination directory> [filter keywords...]"
+        return 1
+    fi
+
     local repo=$1
     local dest=$2
     local keywords=("$@") # Capture all parameters in an array
@@ -32,16 +38,26 @@ download_github_release() {
 
     # Create destination directory if it does not exist
     mkdir -p "$dest"
+    if [ ! -d "$dest" ]; then
+        echo "Error: Failed to create destination directory '$dest'"
+        return 1
+    fi
 
     # Download the file
     local filename=$(basename "$asset_url")
     curl -L "$asset_url" -o "$dest/$filename"
-    
-    echo "Downloaded $filename to $dest"
+
+    if [ $? -eq 0 ]; then
+        echo "Downloaded $filename to $dest"
+    else
+        echo "Failed to download the file."
+        return 1
+    fi
 }
 
 # Example usage:
 # download_github_release "sharkdp/bat" "/tmp/bat" "x86_64" "linux" "musl"
+
 
 # If script is sourced, do nothing, only define function
 # If script is run directly, call print_color with all command line arguments
