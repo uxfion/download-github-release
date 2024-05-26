@@ -107,7 +107,6 @@ download_github_release() {
 
     # Only one URL should be here if the script reaches this point
     local asset_url=${matching_urls[0]}
-    echo "Downloading asset from: $asset_url"
 
     # Validate the asset URL
     if [[ ! "$asset_url" =~ ^https?:// ]]; then
@@ -128,6 +127,7 @@ download_github_release() {
         echo "Using GitHub mirror site for downloading."
         initial_url="https://github.lecter.one/$asset_url"
     fi
+    echo "Downloading asset from: $initial_url"
 
     # Attempt download with initial URL
     local filename=$(basename "$initial_url")

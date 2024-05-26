@@ -14,13 +14,15 @@ download_github_release() {
         echo ""
         echo "Options:"
         echo "  -e, --exclude <pattern>  Exclude assets matching <pattern>"
-        echo "  -h, -- help                   Display this help message and exit"
+        echo "  -m, --mirror                 Use GitHub mirror site for downloading"
+        echo "  -h, --help                   Display this help message and exit"
         echo ""
         echo "Examples:"
         echo "  $0 sharkdp/bat /tmp/bat linux.*musl"
         echo "  $0 sharkdp/bat /tmp/bat linux x86 musl"
         echo "  $0 BurntSushi/ripgrep ./ linux x86"
         echo "  $0 BurntSushi/ripgrep ./ linux x86 -e sha256  # Exclude assets with 'sha256' in the name"
+        echo "  $0 BurntSushi/ripgrep ./ linux x86 -m  # Use mirror site for downloading"
         return 0
     fi
 
@@ -29,12 +31,17 @@ download_github_release() {
     shift 2
     local excludes=()
     local includes=()
+    local use_mirror=false
 
     while (( "$#" )); do
         case "$1" in
             -e|--exclude)
                 excludes+=("$2")  # Add to array of patterns to exclude
                 shift 2
+                ;;
+            -m|--mirror)
+                use_mirror=true  # Enable mirror site usage
+                shift
                 ;;
             *)
                 includes+=("$1")  # Add to array of patterns to include
@@ -88,9 +95,18 @@ download_github_release() {
         return 1
     fi
 
+    # Determine the initial URL to use
+    local initial_url=$asset_url
+    if $use_mirror; then
+        echo "Using GitHub mirror site for downloading."
+        initial_url="https://github.lecter.one/$asset_url"
+    fi
+    echo "Downloading asset from: $initial_url"
+
+
     # Download the file
-    local filename=$(basename "$asset_url")
-    curl -L "$asset_url" -o "$dest/$filename"
+    local filename=$(basename "$initial_url")
+    curl -L -# "$initial_url" -o "$dest/$filename"
 
     if [ $? -eq 0 ]; then
         echo "Downloaded $filename to $dest"
