@@ -1,5 +1,31 @@
 #!/bin/bash
 
+# Function to download file and monitor speed
+download_with_speed_check() {
+    local url=$1
+    local dest_file=$2
+    local log_file=$(mktemp)
+
+    # Start download and monitor speed
+    curl -L --progress-bar "$url" -o "$dest_file" 2>&1 | tee "$log_file" &
+    local curl_pid=$!
+    
+    sleep 5  # Allow some time to gather initial speed data
+    
+    # Monitor speed
+    while kill -0 $curl_pid 2> /dev/null; do
+        local speed=$(tail -n 1 "$log_file" | grep -o '[0-9.]\+k' | sed 's/k//')
+        if [[ -n "$speed" && $(echo "$speed < 10" | bc -l) -eq 1 ]]; then
+            kill -9 $curl_pid 2> /dev/null
+            return 1
+        fi
+        sleep 1
+    done
+
+    wait $curl_pid
+    return $?
+}
+
 # Function to download the latest GitHub release based on given filters
 download_github_release() {
     # Display help message if help flag is detected or not enough arguments are provided
@@ -22,7 +48,7 @@ download_github_release() {
         echo "  $0 sharkdp/bat /tmp/bat linux x86 musl"
         echo "  $0 BurntSushi/ripgrep ./ linux x86"
         echo "  $0 BurntSushi/ripgrep ./ linux x86 -e sha256  # Exclude assets with 'sha256' in the name"
-        echo "  $0 sxyazi/yazi ./ linux x86 -m  # Use mirror site for downloading"
+        echo "  $0 BurntSushi/ripgrep ./ linux x86 -m  # Use mirror site for downloading"
         return 0
     fi
 
@@ -81,6 +107,7 @@ download_github_release() {
 
     # Only one URL should be here if the script reaches this point
     local asset_url=${matching_urls[0]}
+    echo "Downloading asset from: $asset_url"
 
     # Validate the asset URL
     if [[ ! "$asset_url" =~ ^https?:// ]]; then
@@ -95,35 +122,10 @@ download_github_release() {
         return 1
     fi
 
-    # Function to download file and monitor speed
-    download_with_speed_check() {
-        local url=$1
-        local dest_file=$2
-        local log_file=$(mktemp)
-
-        # Start download and monitor speed
-        curl -L --progress-bar "$url" -o "$dest_file" 2> "$log_file" &
-        local curl_pid=$!
-        
-        sleep 5  # Allow some time to gather initial speed data
-        
-        # Monitor speed
-        while kill -0 $curl_pid 2> /dev/null; do
-            local speed=$(tail -n 1 "$log_file" | grep -o '[0-9.]\+k' | sed 's/k//')
-            if [[ -n "$speed" && $(echo "$speed < 10" | bc -l) -eq 1 ]]; then
-                kill -9 $curl_pid 2> /dev/null
-                return 1
-            fi
-            sleep 1
-        done
-
-        wait $curl_pid
-        return $?
-    }
-
     # Determine the initial URL to use
     local initial_url=$asset_url
     if $use_mirror; then
+        echo "Using GitHub mirror site for downloading."
         initial_url="https://github.lecter.one/$asset_url"
     fi
 
