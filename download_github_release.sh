@@ -22,7 +22,7 @@ download_github_release() {
         echo "  $0 sharkdp/bat /tmp/bat linux x86 musl"
         echo "  $0 BurntSushi/ripgrep ./ linux x86"
         echo "  $0 BurntSushi/ripgrep ./ linux x86 -e sha256  # Exclude assets with 'sha256' in the name"
-        echo "  $0 BurntSushi/ripgrep ./ linux x86 -m  # Use mirror site for downloading"
+        echo "  $0 sxyazi/yazi ./ linux x86 musl -m  # Use mirror site for downloading"
         return 0
     fi
 
@@ -118,7 +118,7 @@ download_github_release() {
 
 
 # If script is sourced, do nothing, only define function
-# If script is run directly, call print_color with all command line arguments
+# If script is run directly, call download_github_release with all command line arguments
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     download_github_release "$@"
 fi
